@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Window Visualizer</title>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+</head>
+<body bgcolor ='87ceff'>
+  <div style="position:absolute; left:10px; top:100px; width:180;">
+      <h5>Choose image to view<br>Window dimensions in inches<br>Then submit to view</h5>
+      <input type="radio" id="sunny" name="myimg" value="_sunny"><label for="sunny"><img src ="https://i.imgur.com/lxaLwfO.jpg" id="_sunny" width="180" /></label><br>
+      <input type="radio" id="stormy" name="myimg" value="_stormy"><label for="stormy"><img src ="https://live.staticflickr.com/5185/5679003271_61219ed51e_b.jpg" id="_stormy" width="180" /></label><br>
+      <input type="radio" id="rainbow" name="myimg" value="_rainbow"><label for="rainbow"><img src ="https://i.imgur.com/AyP5DxO.jpg" id="_rainbow" width="180"/></label><br>
+      <input type="text" id="width" placeholder="Width"><br>
+      <input type="text" id="height" placeholder="Height"><br>
+      <!-- <input type="radio" name="myshape" id="circle">Circle<br> -->
+      <!-- <input type="radio" name="myshape" onsubmit="lala()" id="rectangle">Rectangle<br> -->
+      <button onclick="draw_window()" id="button">Submit</button>
+  </div>
+  <div style="position:absolute; left:220px; top:50px">
+      <canvas id="canvas" name="canvas1" style="border:1px solid#000000;" width="900" height="900"></canvas>
+  </div>
+</body>
+<script type="application/javascript">
+
+
+function draw_window() {
+    var win_x = parseInt(document.getElementById("width").value);
+    var win_y = parseInt(document.getElementById("height").value);
+    var can_Y = document.getElementById("canvas").height;
+    var can_X = document.getElementById("canvas").width;
+    var c = document.getElementById("canvas");
+    var ctx = c.getContext("2d");
+
+    // TODO For circular window
+    // ctx.beginPath();
+    // ctx.arc(can_X/2, can_Y/2, win_x, 0, 2 * Math.PI);
+    // ctx.stroke();
+
+
+
+    // mult is to convert inches to pixels, want at least one of h/w to cover 80% of the canvas
+    var multiplier = Math.min((0.8 * can_X) / win_x,  (0.8 * can_Y) / win_y);
+    // frame width is always three inches, it's size when drawn will change to reflect window size
+    var frame_w_px = 3 * multiplier;
+    var ww_px = win_x * multiplier
+    var wh_px = win_y * multiplier
+    // find positions by using center of both canvas and image, (check home notes)
+    var inner_left = (can_X - win_x * multiplier)/2
+    var inner_right = (can_X + win_x * multiplier)/2
+    var inner_top = (can_Y - win_y * multiplier)/2
+    var inner_bottom = (can_Y + win_y * multiplier)/2
+    //creates HTMLImageElement
+    const img = new Image();
+    // pulls correct image from form and calls draw function, potentially cropping
+    img.onload = draw;
+    img.src=load_img().src;
+    // defines ratios to find which side to crop
+    var picture_ratio = img.width/img.height;
+    var window_ratio = ww_px/wh_px;
+      // want to keep h/w of picture dependiing on which h/w of window is larger (ratios help us do this)
+      // ie: picture(w/h)=7/2 window(w/h)=1/10, pr>wr so keep full picture height,
+      // but make it as large as the window height then crop off some picture width so it will mach window width
+      // when pr>wr: keep height & crop width
+      // when pr<wr: keep width & crop heightt,
+    if ( picture_ratio > window_ratio ) {
+         var sliced_height = img.height
+         var sliced_width = img.height * window_ratio
+     } else if (picture_ratio < window_ratio) {
+        var sliced_width = img.width
+        var sliced_height = img.width/window_ratio
+    } else {
+        var sliced_width = img.width
+        var sliced_height = img.height
+    }
+    // draws image: keep 1 dimension of image full based on ratios
+    // crops off other dimensions excess to fit into window
+    function draw() {
+      const ctx = document.querySelector('canvas').getContext('2d');
+      ctx.drawImage(img,0,0,sliced_width,sliced_height,inner_left+ frame_w_px, inner_top + frame_w_px, ww_px - frame_w_px * 2, wh_px - frame_w_px * 2);
+    }
+    // clears canvas on page reload
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    // adds outer rectangle
+    ctx.fillStyle = "white"
+    ctx.strokeRect(inner_left, inner_top, ww_px, wh_px);
+    ctx.fillRect(inner_left, inner_top, ww_px, wh_px);
+    // adds inner rectangle (space between inner and outer is frame)
+    ctx.strokeRect(inner_left + frame_w_px, inner_top + frame_w_px, ww_px - frame_w_px * 2, wh_px - frame_w_px * 2);
+    ctx.fillRect(inner_left + frame_w_px, inner_top + frame_w_px, ww_px - frame_w_px * 2, wh_px - frame_w_px * 2);
+    // adds the four corner lines
+    // top left
+    ctx.beginPath();
+    ctx.moveTo(inner_left, inner_top);
+    ctx.lineTo(inner_left + frame_w_px, inner_top + frame_w_px);
+    ctx.stroke();
+    // top right
+    ctx.beginPath();
+    ctx.moveTo(inner_right, inner_top);
+    ctx.lineTo(inner_right - frame_w_px,inner_top + frame_w_px);
+    ctx.stroke();
+    // bottom left
+    ctx.beginPath();
+    ctx.moveTo(inner_left, inner_bottom);
+    ctx.lineTo(inner_left + frame_w_px, inner_bottom - frame_w_px);
+    ctx.stroke();
+    // bottom right
+    ctx.beginPath();
+    ctx.moveTo(inner_right,inner_bottom);
+    ctx.lineTo(inner_right - frame_w_px, inner_bottom - frame_w_px);
+    ctx.stroke();
+}
+// when form submitted function runs, using image and dimensions chosen to draw window
+function load_img() {
+        const images = document.querySelectorAll('input[name="myimg"]');
+        let selectedValue
+        for (const img of images) {
+            if (img.checked) {
+                selectedValue = img.value;
+                return document.getElementById(selectedValue)
+            }}}
+</script>
+</html>
